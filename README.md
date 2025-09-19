@@ -56,13 +56,92 @@ the actual download links, for all the architectures available for that language
 Requirements
 ------------
 
-Windows 8 or later with PowerShell. Windows 7 is __not__ supported.
+# List languages for Windows 11 24H2 Home/Pro/Edu
+ferro list languages "Windows 11" "24H2" "Windows 11 Home/Pro/Edu"
 
-Commandline mode
-----------------
+# List architectures for Windows 11 24H2 Home/Pro/Edu English
+ferro list architectures "Windows 11" "24H2" "Windows 11 Home/Pro/Edu" "English"
+```
 
-Fido supports commandline mode whereas, whenever one of the following options is provided, a GUI is not instantiated
-and you can instead generate the ISO download from within a PowerShell console or script.
+### Download Windows ISOs
+
+```bash
+# Download latest Windows 11 with system defaults
+ferro download
+
+# Download specific Windows 10 version
+ferro download -w "Windows 10" -r "22H2" -e "Home/Pro" -l "English" -a "x64"
+
+# Get download URL only (without downloading)
+ferro download -w "Windows 11" --get-url
+
+# Specify custom output path
+ferro download -w "Windows 11" -o /path/to/windows11.iso
+```
+
+### Options
+
+- `-w, --version <VERSION>`: Windows version (e.g., "Windows 11", "Windows 10")
+- `-r, --release <RELEASE>`: Windows release (e.g., "24H2", "22H2")  
+- `-e, --edition <EDITION>`: Windows edition (e.g., "Home/Pro/Edu", "Pro")
+- `-l, --language <LANGUAGE>`: Language (e.g., "English", "en-US")
+- `-a, --architecture <ARCH>`: Architecture (e.g., "x64", "x86", "ARM64")
+- `-o, --output <PATH>`: Output file path
+- `--get-url`: Only display download URL without downloading
+
+## Examples
+
+```bash
+# Quick download with defaults
+ferro download
+
+# Download Windows 10 Pro in French for x64
+ferro download -w "Windows 10" -e "Pro" -l "French" -a "x64"
+
+# Get download URL for Windows 11 ARM64
+ferro download -w "Windows 11" -a "ARM64" --get-url
+
+# Download UEFI Shell
+ferro download -w "UEFI Shell 2.2" -e "Release"
+```
+
+## Technical Details
+
+Ferro replicates the functionality of the original Fido PowerShell script by:
+
+1. **Session Management**: Creates authenticated sessions with Microsoft's download servers
+2. **API Communication**: Uses Microsoft's software-download-connector API endpoints
+3. **Multi-step Process**: Follows the same version → release → edition → language → architecture → download workflow
+4. **Anti-automation Handling**: Implements session whitelisting and proper request headers
+5. **Cross-platform Compatibility**: Pure Rust implementation works on any platform Rust supports
+
+## Architecture
+
+- `src/main.rs`: CLI entry point and command coordination
+- `src/cli.rs`: Command-line argument parsing and validation  
+- `src/iso_api.rs`: Microsoft API communication and session management
+- `src/downloader.rs`: HTTP download implementation with progress tracking
+- `src/types.rs`: Data structures for API responses and internal state
+- `src/utils.rs`: Cross-platform utilities for locale/architecture detection
+
+## Comparison with Fido
+
+| Feature | Fido (PowerShell) | Ferro (Rust) |
+|---------|-------------------|--------------|
+| Platform Support | Windows only | Windows, macOS, Linux |
+| Dependencies | PowerShell 3.0+ | None (single binary) |
+| Performance | Interpreted | Compiled (faster) |
+| Memory Usage | Higher (PowerShell runtime) | Lower (native binary) |
+| Distribution | Script file | Single executable |
+| GUI Mode | Yes | CLI only (for now) |
+
+## License
+
+GNU General Public License version 3.0 or later.
+
+## Acknowledgments
+
+Ferro is inspired by and based on the excellent [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. This Rust implementation aims to provide the same functionality in a cross-platform, dependency-free package.
 
 Note however that, as of 2023.05, Microsoft has removed access to older releases of Windows ISOs and as a result, the
 list of releases that can be downloaded from Fido has had to be reduced to only the latest for each version.
