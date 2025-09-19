@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
 }
 
 async fn run(cli: Cli) -> Result<()> {
-    let api = IsoApi::new();
+    let api = IsoApi::new()?;
     
     match cli.command {
         Some(crate::cli::Commands::List { item_type }) => {
