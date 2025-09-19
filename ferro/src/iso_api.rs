@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Context, Result};
 use log::{debug, warn};
 use reqwest::Client;
+use serde_json;
 use std::collections::HashMap;
+use std::time::Duration;
 use uuid::Uuid;
 
 use crate::types::*;
@@ -15,7 +17,8 @@ pub struct IsoApi {
 impl IsoApi {
     pub fn new() -> Self {
         let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(Duration::from_secs(30))
+            .redirect(reqwest::redirect::Policy::none()) // Like Fido's MaximumRedirection 0
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .expect("Failed to create HTTP client");
@@ -101,8 +104,8 @@ impl IsoApi {
         for (session_index, &edition_id) in edition.id.iter().enumerate() {
             let session_id = Uuid::new_v4().to_string();
             
-            // Skip explicit whitelisting for now - Microsoft's endpoint requires browser behavior
-            // self.whitelist_session(&session_id).await?;
+            // Whitelist session ID like Fido does
+            self.whitelist_session(&session_id).await?;
             
             // Get SKU information
             let languages_response = self.get_sku_information(edition_id, &session_id).await?;
@@ -145,8 +148,8 @@ impl IsoApi {
         
         for language_data in &language.data {
             let session_id = Uuid::new_v4().to_string();
-            // Skip explicit whitelisting for now - Microsoft's endpoint requires browser behavior
-            // self.whitelist_session(&session_id).await?;
+            // Whitelist session ID like Fido does
+            self.whitelist_session(&session_id).await?;
             let download_links = self.get_download_links(&language_data.sku_id, &session_id).await?;
             
             if let Some(download_options) = download_links.product_download_options {
@@ -182,20 +185,19 @@ impl IsoApi {
 
         debug!("Whitelisting session: {}", url);
         
-        let response = self
+        // Like Fido, just make the request and discard response - don't check status
+        // Important: Don't follow redirects (MaximumRedirection 0 in Fido)
+        let _response = self
             .client
             .get(&url)
+            .timeout(std::time::Duration::from_secs(30))
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .send()
             .await
             .context("Failed to whitelist session")?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let response_text = response.text().await.unwrap_or_default();
-            return Err(anyhow!("Session whitelisting failed with status: {} - Response: {}", 
-                              status, response_text));
-        }
-
+        // Don't check response status or content - just making the request is enough
+        debug!("Session whitelisting request completed");
         Ok(())
     }
 
