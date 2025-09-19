@@ -29,7 +29,7 @@ pub struct WindowsLanguage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LanguageData {
     pub session_index: usize,
-    pub sku_id: u32,
+    pub sku_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,16 +46,31 @@ pub struct MicrosoftApiResponse {
     pub product_download_options: Option<Vec<ProductDownloadOption>>,
     #[serde(rename = "Errors")]
     pub errors: Option<Vec<ApiError>>,
+    // New fields from actual API response
+    #[serde(rename = "ValidationContainer")]
+    pub validation_container: Option<ValidationContainer>,
+    #[serde(rename = "Tickets")]
+    pub tickets: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sku {
     #[serde(rename = "Id")]
-    pub id: u32,
+    pub id: String,
     #[serde(rename = "Language")]
     pub language: String,
     #[serde(rename = "LocalizedLanguage")]
     pub localized_language: String,
+    #[serde(rename = "LocalizedProductDisplayName")]
+    pub localized_product_display_name: String,
+    #[serde(rename = "Description")]
+    pub description: Option<String>,
+    #[serde(rename = "ProductDisplayName")]
+    pub product_display_name: Option<String>,
+    #[serde(rename = "ProductEditionName")]
+    pub product_edition_name: Option<String>,
+    #[serde(rename = "FriendlyFileNames")]
+    pub friendly_file_names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,6 +87,14 @@ pub struct ApiError {
     pub error_type: u32,
     #[serde(rename = "Value")]
     pub value: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationContainer {
+    #[serde(rename = "ErrorList")]
+    pub error_list: Vec<serde_json::Value>,
+    #[serde(rename = "Errors")]
+    pub errors: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Clone)]

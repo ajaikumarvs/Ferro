@@ -151,7 +151,6 @@ impl Default for Downloader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_downloader_creation() {

@@ -101,8 +101,8 @@ impl IsoApi {
         for (session_index, &edition_id) in edition.id.iter().enumerate() {
             let session_id = Uuid::new_v4().to_string();
             
-            // Whitelist session ID
-            self.whitelist_session(&session_id).await?;
+            // Skip explicit whitelisting for now - Microsoft's endpoint requires browser behavior
+            // self.whitelist_session(&session_id).await?;
             
             // Get SKU information
             let languages_response = self.get_sku_information(edition_id, &session_id).await?;
@@ -145,11 +145,11 @@ impl IsoApi {
         
         for language_data in &language.data {
             let session_id = Uuid::new_v4().to_string();
-            self.whitelist_session(&session_id).await?;
+            // Skip explicit whitelisting for now - Microsoft's endpoint requires browser behavior
+            // self.whitelist_session(&session_id).await?;
+            let download_links = self.get_download_links(&language_data.sku_id, &session_id).await?;
             
-            let download_response = self.get_download_links(language_data.sku_id, &session_id).await?;
-            
-            if let Some(download_options) = download_response.product_download_options {
+            if let Some(download_options) = download_links.product_download_options {
                 for option in download_options {
                     let arch_name = utils::get_arch_from_type(option.download_type);
                     architectures.push(WindowsArchitecture {
@@ -189,8 +189,11 @@ impl IsoApi {
             .await
             .context("Failed to whitelist session")?;
 
-        if !response.status().is_success() {
-            warn!("Session whitelisting returned status: {}", response.status());
+        let status = response.status();
+        if !status.is_success() {
+            let response_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Session whitelisting failed with status: {} - Response: {}", 
+                              status, response_text));
         }
 
         Ok(())
@@ -211,10 +214,16 @@ impl IsoApi {
             .await
             .context("Failed to get SKU information")?;
 
-        let api_response: MicrosoftApiResponse = response
-            .json()
-            .await
-            .context("Failed to parse SKU information response")?;
+        let response_text = response.text().await.context("Failed to get response text")?;
+        debug!("SKU information response: {}", response_text);
+        
+        // Save response to file for debugging
+        if let Err(e) = std::fs::write("api_response.json", &response_text) {
+            debug!("Failed to write response to file: {}", e);
+        }
+        
+        let api_response: MicrosoftApiResponse = serde_json::from_str(&response_text)
+            .with_context(|| format!("Failed to parse SKU information response. Response was: {}", response_text))?;
 
         if let Some(errors) = &api_response.errors {
             if !errors.is_empty() {
@@ -225,7 +234,7 @@ impl IsoApi {
         Ok(api_response)
     }
 
-    async fn get_download_links(&self, sku_id: u32, session_id: &str) -> Result<MicrosoftApiResponse> {
+    async fn get_download_links(&self, sku_id: &str, session_id: &str) -> Result<MicrosoftApiResponse> {
         let url = format!(
             "https://www.microsoft.com/software-download-connector/api/GetProductDownloadLinksBySku?profile={}&productEditionId=undefined&SKU={}&friendlyFileName=undefined&Locale=en-US&sessionID={}",
             self.session_data.profile_id, sku_id, session_id

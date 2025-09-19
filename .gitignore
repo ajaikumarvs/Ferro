@@ -262,3 +262,7 @@ __pycache__/
 
 # Signatures
 *.sig
+
+
+#api debug files
+ferro/api_response.json
