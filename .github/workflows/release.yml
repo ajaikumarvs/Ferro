@@ -76,7 +76,7 @@ jobs:
         echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -88,7 +88,7 @@ jobs:
           ${{ runner.os }}-cargo-
 
     - name: Cache target directory
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ferro/target
         key: ${{ runner.os }}-target-${{ matrix.target }}-${{ hashFiles('ferro/Cargo.lock') }}
@@ -104,7 +104,7 @@ jobs:
       run: strip ${{ matrix.path }}
 
     - name: Upload binary artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
         path: ${{ matrix.path }}
@@ -119,7 +119,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry/index/
@@ -150,7 +150,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
 
@@ -169,34 +169,31 @@ jobs:
         fi
 
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
-        release_name: Ferro ${{ steps.tag_name.outputs.TAG_NAME }}
+        name: Ferro ${{ steps.tag_name.outputs.TAG_NAME }}
         body: |
           # Ferro ${{ steps.tag_name.outputs.TAG_NAME }}
           
           Cross-platform Windows ISO downloader - Rust rewrite of Fido
           
-          ## Downloads
+          ## 📦 Downloads
           
-          ### Windows
+          ### 🪟 Windows
           - **ferro-windows-x64.exe** - Windows 64-bit (Intel/AMD)
           - **ferro-windows-x86.exe** - Windows 32-bit (Intel/AMD)  
           - **ferro-windows-arm64.exe** - Windows ARM64
           
-          ### Linux
+          ### 🐧 Linux
           - **ferro-linux-x64** - Linux 64-bit (Intel/AMD)
           - **ferro-linux-arm64** - Linux ARM64
           
-          ### macOS
+          ### 🍎 macOS
           - **ferro-macos-x64** - macOS 64-bit (Intel)
           - **ferro-macos-arm64** - macOS ARM64 (Apple Silicon)
           
-          ## Usage
+          ## 🚀 Usage
           
           ```bash
           # Show help
@@ -209,89 +206,19 @@ jobs:
           ./ferro download --version "Windows 11"
           ```
           
-          ## Verification
+          ## 🔒 Verification
           
           SHA256 checksums are provided in `checksums.txt`.
-          
+        files: |
+          artifacts/ferro-windows-x64.exe/ferro.exe
+          artifacts/ferro-windows-x86.exe/ferro.exe
+          artifacts/ferro-windows-arm64.exe/ferro.exe
+          artifacts/ferro-linux-x64/ferro
+          artifacts/ferro-linux-arm64/ferro
+          artifacts/ferro-macos-x64/ferro
+          artifacts/ferro-macos-arm64/ferro
+          checksums.txt
         draft: false
         prerelease: false
 
-    - name: Upload Windows x64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-windows-x64.exe/ferro.exe
-        asset_name: ferro-windows-x64.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows x86
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-windows-x86.exe/ferro.exe
-        asset_name: ferro-windows-x86.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-windows-arm64.exe/ferro.exe
-        asset_name: ferro-windows-arm64.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux x64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-linux-x64/ferro
-        asset_name: ferro-linux-x64
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-linux-arm64/ferro
-        asset_name: ferro-linux-arm64
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS x64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-macos-x64/ferro
-        asset_name: ferro-macos-x64
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/ferro-macos-arm64/ferro
-        asset_name: ferro-macos-arm64
-        asset_content_type: application/octet-stream
-
-    - name: Upload checksums
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: checksums.txt
-        asset_name: checksums.txt
-        asset_content_type: text/plain
+    # All files are uploaded via the softprops/action-gh-release action above
