@@ -1,9 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use log::{debug, warn};
-use rand;
 use reqwest::Client;
 use reqwest_cookie_store::CookieStoreMutex;
-use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -164,7 +162,7 @@ impl IsoApi {
             self.whitelist_session(&session_id).await?;
 
             // Add randomized delay between requests to appear more human-like
-            let delay = 500 + (rand::random::<u64>() % 1000); // 500-1500ms
+            let delay = 500 + (uuid::Uuid::new_v4().as_u128() % 1000) as u64; // 500-1500ms
             tokio::time::sleep(Duration::from_millis(delay)).await;
 
             // Get SKU information using exact Fido approach
@@ -232,7 +230,7 @@ impl IsoApi {
             // Don't create a new session or whitelist again - reuse existing session
 
             // Add randomized delay between requests
-            let delay = 500 + (rand::random::<u64>() % 1000); // 500-1500ms
+            let delay = 500 + (uuid::Uuid::new_v4().as_u128() % 1000) as u64; // 500-1500ms
             tokio::time::sleep(Duration::from_millis(delay)).await;
 
             // Get the stored session ID for this session index
@@ -300,7 +298,7 @@ impl IsoApi {
             }
             Err(e) => {
                 // Like Fido: catch { Error($_.Exception.Message); return @() }
-                return Err(anyhow!("Session whitelisting failed: {}", e));
+                Err(anyhow!("Session whitelisting failed: {}", e))
             }
         }
     }
@@ -496,7 +494,7 @@ impl IsoApi {
     ) -> Result<Vec<WindowsArchitecture>> {
         // Extract version info for UEFI Shell
         let tag = release_name.split(' ').next().unwrap_or("25H1");
-        let shell_version = version_name.split(' ').last().unwrap_or("2.2");
+        let shell_version = version_name.split(' ').next_back().unwrap_or("2.2");
 
         let base_url = format!(
             "https://github.com/pbatard/UEFI-Shell/releases/download/{}",
@@ -584,34 +582,31 @@ impl IsoApi {
             self.query_locale
         );
 
-        match self.client.get(&url).send().await {
-            Ok(response) => {
-                if let Ok(html) = response.text().await {
-                    // Try to extract the actual ban message from HTML like Fido does
-                    let pattern = r#"<input id="msg-01" type="hidden" value="(.*?)"/>"#;
-                    if let Ok(re) = regex::Regex::new(pattern) {
-                        if let Some(captures) = re.captures(&html) {
-                            if let Some(msg) = captures.get(1) {
-                                let msg = msg
-                                    .as_str()
-                                    .replace("&lt;", "<")
-                                    .replace("&gt;", ">")
-                                    .replace("&amp;", "&");
-                                // Remove HTML tags and clean up whitespace
-                                let clean_msg =
-                                    regex::Regex::new(r"<[^>]+>").unwrap().replace_all(&msg, "");
-                                let clean_msg = regex::Regex::new(r"\s+")
-                                    .unwrap()
-                                    .replace_all(&clean_msg, " ");
-                                if clean_msg.contains("715-123130") {
-                                    return clean_msg.trim().to_string() + " Session ID: ";
-                                }
+        if let Ok(response) = self.client.get(&url).send().await {
+            if let Ok(html) = response.text().await {
+                // Try to extract the actual ban message from HTML like Fido does
+                let pattern = r#"<input id="msg-01" type="hidden" value="(.*?)"/>"#;
+                if let Ok(re) = regex::Regex::new(pattern) {
+                    if let Some(captures) = re.captures(&html) {
+                        if let Some(msg) = captures.get(1) {
+                            let msg = msg
+                                .as_str()
+                                .replace("&lt;", "<")
+                                .replace("&gt;", ">")
+                                .replace("&amp;", "&");
+                            // Remove HTML tags and clean up whitespace
+                            let clean_msg =
+                                regex::Regex::new(r"<[^>]+>").unwrap().replace_all(&msg, "");
+                            let clean_msg = regex::Regex::new(r"\s+")
+                                .unwrap()
+                                .replace_all(&clean_msg, " ");
+                            if clean_msg.contains("715-123130") {
+                                return clean_msg.trim().to_string() + " Session ID: ";
                             }
                         }
                     }
                 }
             }
-            Err(_) => {}
         }
 
         // Fallback message like Fido
