@@ -64,10 +64,6 @@ jobs:
       with:
         targets: ${{ matrix.target }}
 
-    - name: Install cross (Linux ARM64)
-      if: matrix.target == 'aarch64-unknown-linux-gnu'
-      run: cargo install cross --git https://github.com/cross-rs/cross
-
     - name: Cache cargo registry
       uses: actions/cache@v4
       with:
@@ -88,14 +84,24 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-target-${{ matrix.target }}-
 
-    - name: Build binary
+    - name: Build binary (ARM64 Linux)
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
       working-directory: ferro
       run: |
-        if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-          cross build --release --target ${{ matrix.target }}
-        else
-          cargo build --release --target ${{ matrix.target }}
-        fi
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+        export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+        export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+        export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
+        export OPENSSL_STATIC=yes
+        export OPENSSL_DIR=/usr
+        cargo build --release --target ${{ matrix.target }}
+
+    - name: Build binary (Other targets)
+      if: matrix.target != 'aarch64-unknown-linux-gnu'
+      working-directory: ferro
+      run: cargo build --release --target ${{ matrix.target }}
 
     - name: Strip binary (Unix)
       if: matrix.os != 'windows-latest'
