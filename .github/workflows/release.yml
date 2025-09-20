@@ -89,20 +89,8 @@ jobs:
       working-directory: ferro
       shell: bash
       run: |
-        sudo dpkg --add-architecture arm64
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu pkg-config libssl-dev:arm64
-        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-        export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
-        export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
-        export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
-        export PKG_CONFIG_ALLOW_CROSS=1
-        export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
-        export OPENSSL_STATIC=yes
-        export OPENSSL_DIR=/usr
-        export OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu
-        export OPENSSL_INCLUDE_DIR=/usr/include/openssl
-        cargo build --release --target ${{ matrix.target }}
+        cargo install cross --git https://github.com/cross-rs/cross
+        cross build --release --target ${{ matrix.target }}
 
     - name: Build binary (Other targets)
       if: matrix.target != 'aarch64-unknown-linux-gnu'
