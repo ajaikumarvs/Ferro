@@ -1,0 +1,297 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        default: 'false'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: ferro-windows-x64.exe
+            path: ferro/target/x86_64-pc-windows-msvc/release/ferro.exe
+          - target: i686-pc-windows-msvc
+            os: windows-latest 
+            name: ferro-windows-x86.exe
+            path: ferro/target/i686-pc-windows-msvc/release/ferro.exe
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            name: ferro-windows-arm64.exe
+            path: ferro/target/aarch64-pc-windows-msvc/release/ferro.exe
+          
+          # Linux
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: ferro-linux-x64
+            path: ferro/target/x86_64-unknown-linux-gnu/release/ferro
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: ferro-linux-arm64
+            path: ferro/target/aarch64-unknown-linux-gnu/release/ferro
+          
+          # macOS
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: ferro-macos-x64
+            path: ferro/target/x86_64-apple-darwin/release/ferro
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: ferro-macos-arm64
+            path: ferro/target/aarch64-apple-darwin/release/ferro
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install cross-compilation tools (Linux ARM64)
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
+    - name: Configure cross-compilation (Linux ARM64)
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('ferro/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.target }}-
+          ${{ runner.os }}-cargo-
+
+    - name: Cache target directory
+      uses: actions/cache@v3
+      with:
+        path: ferro/target
+        key: ${{ runner.os }}-target-${{ matrix.target }}-${{ hashFiles('ferro/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-target-${{ matrix.target }}-
+
+    - name: Build binary
+      working-directory: ferro
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Strip binary (Unix)
+      if: matrix.os != 'windows-latest'
+      run: strip ${{ matrix.path }}
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.name }}
+        path: ${{ matrix.path }}
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          ferro/target
+        key: test-cargo-${{ hashFiles('ferro/Cargo.lock') }}
+
+    - name: Run tests
+      working-directory: ferro
+      run: cargo test --verbose
+
+    - name: Run clippy
+      working-directory: ferro
+      run: cargo clippy -- -D warnings
+
+    - name: Check formatting
+      working-directory: ferro
+      run: cargo fmt -- --check
+
+  release:
+    name: Create Release
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Create checksums
+      run: |
+        cd artifacts
+        find . -type f -exec sha256sum {} \; > ../checksums.txt
+        
+    - name: Get tag name
+      id: tag_name
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "TAG_NAME=manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
+        release_name: Ferro ${{ steps.tag_name.outputs.TAG_NAME }}
+        body: |
+          # Ferro ${{ steps.tag_name.outputs.TAG_NAME }}
+          
+          Cross-platform Windows ISO downloader - Rust rewrite of Fido
+          
+          ## Downloads
+          
+          ### Windows
+          - **ferro-windows-x64.exe** - Windows 64-bit (Intel/AMD)
+          - **ferro-windows-x86.exe** - Windows 32-bit (Intel/AMD)  
+          - **ferro-windows-arm64.exe** - Windows ARM64
+          
+          ### Linux
+          - **ferro-linux-x64** - Linux 64-bit (Intel/AMD)
+          - **ferro-linux-arm64** - Linux ARM64
+          
+          ### macOS
+          - **ferro-macos-x64** - macOS 64-bit (Intel)
+          - **ferro-macos-arm64** - macOS ARM64 (Apple Silicon)
+          
+          ## Usage
+          
+          ```bash
+          # Show help
+          ./ferro --help
+          
+          # List available Windows versions
+          ./ferro list versions
+          
+          # Download Windows 11
+          ./ferro download --version "Windows 11"
+          ```
+          
+          ## Verification
+          
+          SHA256 checksums are provided in `checksums.txt`.
+          
+        draft: false
+        prerelease: false
+
+    - name: Upload Windows x64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-windows-x64.exe/ferro.exe
+        asset_name: ferro-windows-x64.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-windows-x86.exe/ferro.exe
+        asset_name: ferro-windows-x86.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-windows-arm64.exe/ferro.exe
+        asset_name: ferro-windows-arm64.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux x64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-linux-x64/ferro
+        asset_name: ferro-linux-x64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-linux-arm64/ferro
+        asset_name: ferro-linux-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS x64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-macos-x64/ferro
+        asset_name: ferro-macos-x64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/ferro-macos-arm64/ferro
+        asset_name: ferro-macos-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload checksums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: checksums.txt
+        asset_name: checksums.txt
+        asset_content_type: text/plain
