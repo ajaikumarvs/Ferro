@@ -26,7 +26,7 @@ impl Downloader {
 
     pub async fn download<P: AsRef<Path>>(&self, url: &str, output_path: P) -> Result<()> {
         let output_path = output_path.as_ref();
-        
+
         info!("Starting download: {}", url);
         info!("Output file: {}", output_path.display());
 
@@ -91,9 +91,9 @@ impl Downloader {
             file.write_all(&chunk)
                 .await
                 .context("Failed to write chunk to file")?;
-            
+
             downloaded += chunk.len() as u64;
-            
+
             if let Some(pb) = &progress_bar {
                 pb.set_position(downloaded);
             }
@@ -162,7 +162,9 @@ mod tests {
     #[tokio::test]
     async fn test_verify_url_invalid() {
         let downloader = Downloader::new();
-        let result = downloader.verify_url("https://httpbin.org/status/404").await;
+        let result = downloader
+            .verify_url("https://httpbin.org/status/404")
+            .await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
     }
@@ -170,7 +172,9 @@ mod tests {
     #[tokio::test]
     async fn test_verify_url_valid() {
         let downloader = Downloader::new();
-        let result = downloader.verify_url("https://httpbin.org/status/200").await;
+        let result = downloader
+            .verify_url("https://httpbin.org/status/200")
+            .await;
         assert!(result.is_ok());
         assert!(result.unwrap());
     }

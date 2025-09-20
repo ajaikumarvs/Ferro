@@ -121,44 +121,40 @@ pub fn get_windows_versions() -> Vec<WindowsVersionData> {
         WindowsVersionData {
             name: "Windows 11".to_string(),
             page_type: "windows11".to_string(),
-            releases: vec![
-                WindowsReleaseData {
-                    name: "24H2 (Build 26100.1742 - 2024.10)".to_string(),
-                    editions: vec![
-                        WindowsEditionData {
-                            name: "Windows 11 Home/Pro/Edu".to_string(),
-                            ids: vec![3113, 3131],
-                        },
-                        WindowsEditionData {
-                            name: "Windows 11 Home China ".to_string(),
-                            ids: vec![3115, 3132],
-                        },
-                        WindowsEditionData {
-                            name: "Windows 11 Pro China ".to_string(),
-                            ids: vec![3114, 3133],
-                        },
-                    ],
-                },
-            ],
+            releases: vec![WindowsReleaseData {
+                name: "24H2 (Build 26100.1742 - 2024.10)".to_string(),
+                editions: vec![
+                    WindowsEditionData {
+                        name: "Windows 11 Home/Pro/Edu".to_string(),
+                        ids: vec![3113, 3131],
+                    },
+                    WindowsEditionData {
+                        name: "Windows 11 Home China ".to_string(),
+                        ids: vec![3115, 3132],
+                    },
+                    WindowsEditionData {
+                        name: "Windows 11 Pro China ".to_string(),
+                        ids: vec![3114, 3133],
+                    },
+                ],
+            }],
         },
         WindowsVersionData {
             name: "Windows 10".to_string(),
             page_type: "Windows10ISO".to_string(),
-            releases: vec![
-                WindowsReleaseData {
-                    name: "22H2 v1 (Build 19045.2965 - 2023.05)".to_string(),
-                    editions: vec![
-                        WindowsEditionData {
-                            name: "Windows 10 Home/Pro/Edu".to_string(),
-                            ids: vec![2618],
-                        },
-                        WindowsEditionData {
-                            name: "Windows 10 Home China ".to_string(),
-                            ids: vec![2378],
-                        },
-                    ],
-                },
-            ],
+            releases: vec![WindowsReleaseData {
+                name: "22H2 v1 (Build 19045.2965 - 2023.05)".to_string(),
+                editions: vec![
+                    WindowsEditionData {
+                        name: "Windows 10 Home/Pro/Edu".to_string(),
+                        ids: vec![2618],
+                    },
+                    WindowsEditionData {
+                        name: "Windows 10 Home China ".to_string(),
+                        ids: vec![2378],
+                    },
+                ],
+            }],
         },
         WindowsVersionData {
             name: "UEFI Shell 2.2".to_string(),
@@ -299,17 +295,13 @@ pub fn get_windows_versions() -> Vec<WindowsVersionData> {
         WindowsVersionData {
             name: "UEFI Shell 2.0".to_string(),
             page_type: "UEFI_SHELL 2.0".to_string(),
-            releases: vec![
-                WindowsReleaseData {
-                    name: "4.632 [20100426]".to_string(),
-                    editions: vec![
-                        WindowsEditionData {
-                            name: "Release".to_string(),
-                            ids: vec![0],
-                        },
-                    ],
-                },
-            ],
+            releases: vec![WindowsReleaseData {
+                name: "4.632 [20100426]".to_string(),
+                editions: vec![WindowsEditionData {
+                    name: "Release".to_string(),
+                    ids: vec![0],
+                }],
+            }],
         },
     ]
 }
