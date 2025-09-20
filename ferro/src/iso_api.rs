@@ -82,6 +82,7 @@ impl IsoApi {
     }
 
     // Simulate visiting the main download page like a browser would
+    #[allow(dead_code)]
     async fn simulate_page_visit(&self, url: &str) -> Result<()> {
         debug!("Simulating page visit to: {}", url);
 
@@ -304,6 +305,7 @@ impl IsoApi {
         }
     }
 
+    #[allow(dead_code)]
     async fn get_sku_information_with_retry(
         &self,
         product_edition_id: u32,
