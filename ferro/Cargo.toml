@@ -1,6 +1,6 @@
 [package]
 name = "ferro"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Ferro Contributors"]
 description = "A cross-platform Windows ISO downloader - Rust rewrite of Fido"
