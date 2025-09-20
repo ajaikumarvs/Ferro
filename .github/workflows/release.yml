@@ -41,10 +41,6 @@ jobs:
             os: ubuntu-latest
             name: ferro-linux-x64
             path: ferro/target/x86_64-unknown-linux-gnu/release/ferro
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            name: ferro-linux-arm64
-            path: ferro/target/aarch64-unknown-linux-gnu/release/ferro
           
           # macOS
           - target: x86_64-apple-darwin
@@ -84,16 +80,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-target-${{ matrix.target }}-
 
-    - name: Build binary (ARM64 Linux)
-      if: matrix.target == 'aarch64-unknown-linux-gnu'
-      working-directory: ferro
-      shell: bash
-      run: |
-        cargo install cross --git https://github.com/cross-rs/cross
-        cross build --release --target ${{ matrix.target }}
-
-    - name: Build binary (Other targets)
-      if: matrix.target != 'aarch64-unknown-linux-gnu'
+    - name: Build binary
       working-directory: ferro
       run: cargo build --release --target ${{ matrix.target }}
 
@@ -186,7 +173,6 @@ jobs:
           
           ### 🐧 Linux
           - **ferro-linux-x64** - Linux 64-bit (Intel/AMD)
-          - **ferro-linux-arm64** - Linux ARM64
           
           ### 🍎 macOS
           - **ferro-macos-x64** - macOS 64-bit (Intel)
@@ -213,7 +199,6 @@ jobs:
           artifacts/ferro-windows-x86.exe/ferro.exe
           artifacts/ferro-windows-arm64.exe/ferro.exe
           artifacts/ferro-linux-x64/ferro
-          artifacts/ferro-linux-arm64/ferro
           artifacts/ferro-macos-x64/ferro
           artifacts/ferro-macos-arm64/ferro
           checksums.txt
