@@ -1,0 +1,219 @@
+================================================================================
+                            FERRO - USAGE GUIDE
+================================================================================
+
+Ferro is a cross-platform Windows ISO downloader - a Rust rewrite of Fido.
+Download Windows ISOs directly from Microsoft's servers with ease.
+
+================================================================================
+                              INSTALLATION
+================================================================================
+
+1. Download the appropriate binary for your platform from GitHub Releases:
+   - ferro-windows-x64.exe     (Windows 64-bit)
+   - ferro-windows-x86.exe     (Windows 32-bit)
+   - ferro-windows-arm64.exe   (Windows ARM64)
+   - ferro-linux-x64           (Linux 64-bit)
+   - ferro-macos-x64           (macOS Intel)
+   - ferro-macos-arm64         (macOS Apple Silicon)
+
+2. Make the binary executable (Linux/macOS):
+   chmod +x ferro-linux-x64
+
+3. Optionally, add to PATH for system-wide access
+
+================================================================================
+                              BASIC USAGE
+================================================================================
+
+Show help:
+    ferro --help
+    ferro -h
+
+Get version information:
+    ferro --version
+    ferro -V
+
+================================================================================
+                             LIST COMMANDS
+================================================================================
+
+List all available Windows versions:
+    ferro list versions
+
+List releases for a specific version:
+    ferro list releases --version "Windows 11"
+    ferro list releases --version "Windows 10"
+
+List editions for a specific release:
+    ferro list editions --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)"
+
+List languages for a specific edition:
+    ferro list languages --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)" --edition "Windows 11 Home/Pro/Edu"
+
+List architectures for a specific language:
+    ferro list architectures --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)" --edition "Windows 11 Home/Pro/Edu" --language "English"
+
+================================================================================
+                            DOWNLOAD COMMANDS
+================================================================================
+
+Basic download (uses system defaults):
+    ferro download
+
+Download with automatic selection:
+    ferro download --version "Windows 11"
+
+Download with specific options:
+    ferro download --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)" --edition "Windows 11 Home/Pro/Edu" --language "English" --architecture "x64"
+
+Download to specific location:
+    ferro download --version "Windows 11" --output "C:\Downloads\Windows11.iso"
+    ferro download --version "Windows 11" --output "/home/user/Downloads/Windows11.iso"
+
+Get download URL only (don't download):
+    ferro download --version "Windows 11" --get-url
+
+================================================================================
+                              EXAMPLES
+================================================================================
+
+Example 1: Download latest Windows 11 with defaults
+    ferro download --version "Windows 11"
+
+Example 2: Download Windows 10 in Spanish
+    ferro download --version "Windows 10" --language "Spanish"
+
+Example 3: Download Windows 11 for ARM64
+    ferro download --version "Windows 11" --architecture "ARM64"
+
+Example 4: Get download URL for Windows 11
+    ferro download --version "Windows 11" --get-url
+
+Example 5: Download to specific location
+    ferro download --version "Windows 11" --output "./Windows11_24H2.iso"
+
+Example 6: Explore available options step by step
+    ferro list versions
+    ferro list releases --version "Windows 11"
+    ferro list editions --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)"
+    ferro list languages --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)" --edition "Windows 11 Home/Pro/Edu"
+    ferro download --version "Windows 11" --release "24H2 (Build 26100.1742 - 2024.10)" --edition "Windows 11 Home/Pro/Edu" --language "English"
+
+================================================================================
+                           SUPPORTED VERSIONS
+================================================================================
+
+Currently supported Windows versions:
+- Windows 11 (latest release: 24H2)
+- Windows 10 (latest release: 22H2 v1)
+- UEFI Shell 2.2
+- UEFI Shell 2.0
+
+Languages: 40+ languages including English, Spanish, French, German, Japanese, Chinese, etc.
+Architectures: x64, x86, ARM64 (availability depends on version)
+
+================================================================================
+                              AUTO-DETECTION
+================================================================================
+
+Ferro automatically detects and suggests:
+- System locale for language selection
+- System architecture for architecture selection
+- Latest release for the selected version
+- Most common edition (Home/Pro/Edu)
+
+You can override any auto-detection by specifying explicit options.
+
+================================================================================
+                            OUTPUT & PROGRESS
+================================================================================
+
+Ferro provides:
+- Real-time download progress with progress bars
+- Download speed and ETA information
+- File size information
+- SHA256 checksum verification (when available)
+- Detailed error messages with troubleshooting hints
+
+================================================================================
+                             TROUBLESHOOTING
+================================================================================
+
+Common Issues:
+
+1. Network/Connection Errors:
+   - Check your internet connection
+   - Verify firewall settings allow Ferro
+   - Try again later if Microsoft servers are busy
+
+2. Authentication/Access Errors:
+   - Microsoft may temporarily block IPs with too many requests
+   - Wait some time before retrying
+   - Use a different network if necessary
+
+3. Download Interruption:
+   - Ferro doesn't currently support resume
+   - Restart the download if interrupted
+   - Check available disk space
+
+4. Invalid Version/Release:
+   - Use 'ferro list versions' to see available versions
+   - Version names are case-sensitive
+   - Use exact names as shown in the list commands
+
+5. Architecture Not Available:
+   - Not all architectures are available for all versions
+   - Use 'ferro list architectures' to see what's available
+   - ARM64 support varies by Windows version
+
+================================================================================
+                                NOTES
+================================================================================
+
+- Ferro downloads ISOs directly from Microsoft's official servers
+- No modifications are made to the ISO files
+- Download speeds depend on your connection and Microsoft's servers
+- Large files (4GB+) may take significant time to download
+- Ferro maintains session state with Microsoft's servers (like the original Fido)
+- All downloads are verified for integrity when possible
+
+================================================================================
+                             SYSTEM REQUIREMENTS
+================================================================================
+
+- Windows: Windows 7 or later
+- Linux: Any modern Linux distribution with glibc 2.17+
+- macOS: macOS 10.12 Sierra or later
+- Network: Internet connection required
+- Disk: Sufficient space for ISO files (typically 4-6 GB)
+
+================================================================================
+                              LEGAL NOTICE
+================================================================================
+
+Ferro is a tool for downloading official Microsoft Windows ISOs. Users are
+responsible for:
+- Complying with Microsoft's licensing terms
+- Having valid licenses for downloaded Windows versions
+- Following local laws and regulations
+- Respecting Microsoft's servers and bandwidth
+
+================================================================================
+                             GETTING HELP
+================================================================================
+
+For more help:
+- GitHub Issues: https://github.com/ajaikumarvs/Ferro/issues
+- GitHub Discussions: https://github.com/ajaikumarvs/Ferro/discussions
+- Built-in help: ferro --help
+- Command-specific help: ferro <command> --help
+
+================================================================================
+                                LICENSE
+================================================================================
+
+Ferro is licensed under GPL-3.0-or-later.
+See LICENSE file for full license text.
+
+================================================================================
