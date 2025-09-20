@@ -140,10 +140,34 @@ jobs:
       with:
         path: artifacts
 
+    - name: Rename and organize binaries
+      run: |
+        # Debug: List what we downloaded
+        echo "=== Downloaded artifacts ==="
+        find artifacts -type f -ls || true
+        
+        # Copy and rename Windows binaries
+        cp artifacts/ferro-windows-x64.exe/ferro.exe ferro-windows-x64.exe
+        cp artifacts/ferro-windows-x86.exe/ferro.exe ferro-windows-x86.exe
+        cp artifacts/ferro-windows-arm64.exe/ferro.exe ferro-windows-arm64.exe
+        
+        # Copy and rename Linux binaries
+        cp artifacts/ferro-linux-x64/ferro ferro-linux-x64
+        
+        # Copy and rename macOS binaries
+        cp artifacts/ferro-macos-x64/ferro ferro-macos-x64
+        cp artifacts/ferro-macos-arm64/ferro ferro-macos-arm64
+        
+        # Remove original artifacts to avoid confusion
+        rm -rf artifacts/
+        
+        # Debug: Show final files in root
+        echo "=== Final release binaries (in root) ==="
+        ls -la ferro-*
+
     - name: Create checksums
       run: |
-        cd artifacts
-        find . -type f -exec sha256sum {} \; > ../checksums.txt
+        sha256sum ferro-* > checksums.txt
         
     - name: Get tag name
       id: tag_name
@@ -154,7 +178,16 @@ jobs:
           echo "TAG_NAME=manual-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
         fi
 
-    - name: Create Release
+    - name: Debug files before release
+      run: |
+        echo "=== Files to be uploaded ==="
+        ls -la ferro-*
+        ls -la checksums.txt || echo "checksums.txt not found"
+        echo "=== Checksums content ==="
+        cat checksums.txt || echo "Cannot read checksums.txt"
+
+    - name: Create Release (without files)
+      id: create_release_step
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
@@ -194,15 +227,20 @@ jobs:
           ## 🔒 Verification
           
           SHA256 checksums are provided in `checksums.txt`.
-        files: |
-          artifacts/ferro-windows-x64.exe/ferro.exe
-          artifacts/ferro-windows-x86.exe/ferro.exe
-          artifacts/ferro-windows-arm64.exe/ferro.exe
-          artifacts/ferro-linux-x64/ferro
-          artifacts/ferro-macos-x64/ferro
-          artifacts/ferro-macos-arm64/ferro
-          checksums.txt
         draft: false
         prerelease: false
+
+    - name: Upload release binaries separately
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
+        files: |
+          ferro-windows-x64.exe
+          ferro-windows-x86.exe
+          ferro-windows-arm64.exe
+          ferro-linux-x64
+          ferro-macos-x64
+          ferro-macos-arm64
+          checksums.txt
 
     # All files are uploaded via the softprops/action-gh-release action above
