@@ -29,14 +29,14 @@ async fn main() -> Result<()> {
 }
 
 async fn run(cli: Cli) -> Result<()> {
-    let api = IsoApi::new()?;
+    let mut api = IsoApi::new().await?;
     
     match cli.command {
         Some(crate::cli::Commands::List { item_type }) => {
-            handle_list_command(item_type, &api).await
+            handle_list_command(item_type, &mut api).await
         }
         Some(crate::cli::Commands::Download { options }) => {
-            handle_download_command(options, &api).await
+            handle_download_command(options, &mut api).await
         }
         None => {
             // Interactive mode - for future implementation
@@ -46,7 +46,7 @@ async fn run(cli: Cli) -> Result<()> {
     }
 }
 
-async fn handle_list_command(item_type: crate::cli::ListType, api: &IsoApi) -> Result<()> {
+async fn handle_list_command(item_type: crate::cli::ListType, api: &mut IsoApi) -> Result<()> {
     match item_type {
         crate::cli::ListType::Versions => {
             let versions = api.get_available_versions().await?;
@@ -87,7 +87,7 @@ async fn handle_list_command(item_type: crate::cli::ListType, api: &IsoApi) -> R
     Ok(())
 }
 
-async fn handle_download_command(options: crate::cli::DownloadOptions, api: &IsoApi) -> Result<()> {
+async fn handle_download_command(options: crate::cli::DownloadOptions, api: &mut IsoApi) -> Result<()> {
     info!("Starting download process...");
     
     // Resolve defaults if not specified

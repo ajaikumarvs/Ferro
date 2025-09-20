@@ -15,53 +15,37 @@ use crate::utils;
 pub struct IsoApi {
     client: Client,
     session_data: SessionData,
+    session_ids: HashMap<usize, String>, // Store session IDs by index for reuse like Fido
+    query_locale: String, // $QueryLocale like Fido - can be different from system locale
 }
 
 impl IsoApi {
-    pub fn new() -> Result<Self> {
-        // Create cookie store for session management
+    pub async fn new() -> Result<Self> {
+        // Create simple client like PowerShell's Invoke-RestMethod with -UseBasicParsing
         let cookie_store = Arc::new(CookieStoreMutex::default());
         
         let client = Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .redirect(reqwest::redirect::Policy::none()) // Don't follow redirects like Fido
-            .timeout(Duration::from_secs(30))
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) WindowsPowerShell/5.1.19041.4170")
+            .redirect(reqwest::redirect::Policy::none()) // MaximumRedirection 0 like Fido
+            .timeout(Duration::from_secs(30)) // DefaultTimeout like Fido
             .cookie_provider(cookie_store.clone())
-            .default_headers({
-                let mut headers = reqwest::header::HeaderMap::new();
-                headers.insert("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7".parse().unwrap());
-                headers.insert("Accept-Language", "en-US,en;q=0.9".parse().unwrap());
-                headers.insert("Accept-Encoding", "gzip, deflate, br".parse().unwrap());
-                headers.insert("DNT", "1".parse().unwrap());
-                headers.insert("Connection", "keep-alive".parse().unwrap());
-                headers.insert("Upgrade-Insecure-Requests", "1".parse().unwrap());
-                headers.insert("Sec-Fetch-Dest", "document".parse().unwrap());
-                headers.insert("Sec-Fetch-Mode", "navigate".parse().unwrap());
-                headers.insert("Sec-Fetch-Site", "none".parse().unwrap());
-                headers.insert("Sec-Fetch-User", "?1".parse().unwrap());
-                headers.insert("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"".parse().unwrap());
-                headers.insert("sec-ch-ua-mobile", "?0".parse().unwrap());
-                headers.insert("sec-ch-ua-platform", "\"Windows\"".parse().unwrap());
-                headers.insert("sec-ch-ua-platform-version", "\"15.0.0\"".parse().unwrap());
-                headers.insert("sec-ch-ua-arch", "\"x86\"".parse().unwrap());
-                headers.insert("sec-ch-ua-bitness", "\"64\"".parse().unwrap());
-                headers.insert("sec-ch-ua-model", "\"\"".parse().unwrap());
-                headers.insert("sec-ch-ua-full-version", "\"120.0.6099.109\"".parse().unwrap());
-                headers.insert("viewport-width", "1920".parse().unwrap());
-                headers.insert("sec-ch-viewport-width", "1920".parse().unwrap());
-                headers.insert("sec-ch-dpr", "1".parse().unwrap());
-                headers
-            })
             .build()?;
 
-        Ok(IsoApi {
+        let mut api = IsoApi {
             client,
             session_data: SessionData {
                 session_id: Uuid::new_v4().to_string(),
                 org_id: "y6jn8c31".to_string(),
-                profile_id: "606624d44113c169".to_string(),
+                profile_id: "606624d44113".to_string(), // Matches Fido exactly
             },
-        })
+            session_ids: HashMap::new(),
+            query_locale: "en-US".to_string(), // Default, will be validated
+        };
+        
+        // Check and set proper locale like Fido's Check-Locale function
+        api.check_and_set_locale().await?;
+        
+        Ok(api)
     }
 
     pub async fn get_available_versions(&self) -> Result<Vec<WindowsVersion>> {
@@ -115,12 +99,6 @@ impl IsoApi {
     }
 
     pub async fn get_editions(&self, version_name: &str, release_name: &str) -> Result<Vec<WindowsEdition>> {
-        // First, simulate visiting the main download page like a browser would
-        self.simulate_page_visit("https://www.microsoft.com/software-download/windows11").await?;
-        
-        // Add delay to simulate reading the page
-        let delay = 1000 + (rand::random::<u64>() % 2000); // 1-3 seconds
-        tokio::time::sleep(Duration::from_millis(delay)).await;
         
         let versions = get_windows_versions();
         let version_data = versions
@@ -144,13 +122,16 @@ impl IsoApi {
             .collect())
     }
 
-    pub async fn get_languages(&self, version_name: &str, release_name: &str, edition_name: &str) -> Result<Vec<WindowsLanguage>> {
+    pub async fn get_languages(&mut self, version_name: &str, release_name: &str, edition_name: &str) -> Result<Vec<WindowsLanguage>> {
         // Check if this is a UEFI Shell version
         if version_name.to_lowercase().contains("uefi") {
             return Ok(vec![WindowsLanguage {
                 name: "en-us".to_string(),
                 display_name: "English (US)".to_string(),
-                data: vec![],
+                data: vec![LanguageData { 
+                    session_index: 0, 
+                    sku_id: "1".to_string()
+                }],
             }]);
         }
 
@@ -165,6 +146,9 @@ impl IsoApi {
         for (session_index, &edition_id) in edition.id.iter().enumerate() {
             let session_id = Uuid::new_v4().to_string();
             
+            // Store the session ID for later reuse (like Fido does)
+            self.session_ids.insert(session_index, session_id.clone());
+            
             // Whitelist session ID like Fido does
             self.whitelist_session(&session_id).await?;
             
@@ -172,8 +156,8 @@ impl IsoApi {
             let delay = 500 + (rand::random::<u64>() % 1000); // 500-1500ms
             tokio::time::sleep(Duration::from_millis(delay)).await;
             
-            // Get SKU information
-            let languages_response = self.get_sku_information_with_retry(edition_id, &session_id).await?;
+            // Get SKU information using exact Fido approach
+            let languages_response = self.try_get_sku_information(edition_id, &session_id, 0).await?;
             
             if let Some(skus) = languages_response.skus {
                 for sku in skus {
@@ -192,11 +176,14 @@ impl IsoApi {
                 }
             }
         }
+        
+        // Store session IDs in a way that can be accessed later
+        // For now, we'll need to modify the approach to pass session IDs through
 
         Ok(languages.into_values().collect())
     }
 
-    pub async fn get_architectures(&self, version_name: &str, release_name: &str, edition_name: &str, language_name: &str) -> Result<Vec<WindowsArchitecture>> {
+    pub async fn get_architectures(&mut self, version_name: &str, release_name: &str, edition_name: &str, language_name: &str) -> Result<Vec<WindowsArchitecture>> {
         // Check if this is a UEFI Shell version
         if version_name.to_lowercase().contains("uefi") {
             return self.get_uefi_shell_architectures(version_name, release_name, edition_name).await;
@@ -212,15 +199,18 @@ impl IsoApi {
         let mut architectures = vec![];
         
         for language_data in &language.data {
-            let session_id = Uuid::new_v4().to_string();
-            // Whitelist session ID like Fido does
-            self.whitelist_session(&session_id).await?;
+            // Reuse the session ID from the SKU information call (like Fido does with $SessionId[$Entry.SessionIndex])
+            // Don't create a new session or whitelist again - reuse existing session
             
             // Add randomized delay between requests
             let delay = 500 + (rand::random::<u64>() % 1000); // 500-1500ms
             tokio::time::sleep(Duration::from_millis(delay)).await;
             
-            let download_links = self.get_download_links(&language_data.sku_id, &session_id).await?;
+            // Get the stored session ID for this session index
+            let session_id = self.session_ids.get(&language_data.session_index)
+                .ok_or_else(|| anyhow!("Session ID not found for index {}", language_data.session_index))?;
+            
+            let download_links = self.get_download_links(&language_data.sku_id, session_id).await?;
             
             if let Some(download_options) = download_links.product_download_options {
                 for option in download_options {
@@ -236,7 +226,7 @@ impl IsoApi {
         Ok(architectures)
     }
 
-    pub async fn get_download_url(&self, version_name: &str, release_name: &str, edition_name: &str, language_name: &str, architecture_name: &str) -> Result<String> {
+    pub async fn get_download_url(&mut self, version_name: &str, release_name: &str, edition_name: &str, language_name: &str, architecture_name: &str) -> Result<String> {
         let architectures = self.get_architectures(version_name, release_name, edition_name, language_name).await?;
         
         let architecture = architectures
@@ -255,16 +245,10 @@ impl IsoApi {
 
         debug!("Whitelisting session: {}", url);
         
-        // Like Fido, make the request but handle failures gracefully
+        // Exact replication of Fido: Invoke-WebRequest -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 $url | Out-Null
         match self
             .client
             .get(&url)
-            .header("Referer", "https://www.microsoft.com/software-download/windows11")
-            .header("Sec-Fetch-Dest", "empty")
-            .header("Sec-Fetch-Mode", "cors")
-            .header("Sec-Fetch-Site", "cross-site")
-            .header("X-Requested-With", "XMLHttpRequest")
-            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await
         {
@@ -273,10 +257,8 @@ impl IsoApi {
                 Ok(())
             }
             Err(e) => {
-                // Like Fido, log the error but don't fail completely
-                // Sometimes the API calls work even if whitelisting fails
-                warn!("Session whitelisting failed (continuing anyway): {}", e);
-                Ok(()) // Continue processing despite whitelisting failure
+                // Like Fido: catch { Error($_.Exception.Message); return @() }
+                return Err(anyhow!("Session whitelisting failed: {}", e));
             }
         }
     }
@@ -302,56 +284,18 @@ impl IsoApi {
     }
     
     async fn try_get_sku_information(&self, product_edition_id: u32, session_id: &str, attempt: u32) -> Result<MicrosoftApiResponse> {
-        // Simulate JavaScript execution delay before API call
-        let js_delay = 100 + (rand::random::<u64>() % 300); // 100-400ms like JS execution
-        tokio::time::sleep(Duration::from_millis(js_delay)).await;
-        
-        // Vary the approach based on attempt number
-        let (accept_header, user_agent, locale) = match attempt {
-            0 => ("application/json, text/plain, */*", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", "en-US"),
-            1 => ("*/*", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36", "en-us"),
-            _ => ("application/json", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0", "en-US"),
-        };
-        
-        // Try different parameter variations
-        let (sku_param, filename_param) = match attempt {
-            0 => ("undefined", "undefined"),
-            1 => ("", ""),
-            _ => ("null", "null"),
-        };
-        
+        // Use exact same URL format as Fido with $QueryLocale
         let url = format!(
-            "https://www.microsoft.com/software-download-connector/api/getskuinformationbyproductedition?profile={}&productEditionId={}&SKU={}&friendlyFileName={}&Locale={}&sessionID={}",
-            self.session_data.profile_id, product_edition_id, sku_param, filename_param, locale, session_id
+            "https://www.microsoft.com/software-download-connector/api/getskuinformationbyproductedition?profile={}&productEditionId={}&SKU=undefined&friendlyFileName=undefined&Locale={}&sessionID={}",
+            self.session_data.profile_id, product_edition_id, self.query_locale, session_id
         );
 
         debug!("Getting SKU information (attempt {}): {}", attempt + 1, url);
 
-        let referer = "https://www.microsoft.com/software-download/windows11";
-        let mut request = self
+        // Use minimal headers like Fido's -UseBasicParsing
+        let response = self
             .client
             .get(&url)
-            .header("Referer", referer)
-            .header("Accept", accept_header)
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .header("User-Agent", user_agent);
-            
-        // Add more browser-like headers for later attempts
-        if attempt > 0 {
-            request = request
-                .header("Cache-Control", "no-cache")
-                .header("Pragma", "no-cache")
-                .header("Sec-Fetch-Dest", "empty")
-                .header("Sec-Fetch-Mode", "cors")
-                .header("Sec-Fetch-Site", "same-site");
-        }
-        
-        // Add XMLHttpRequest header only for first two attempts
-        if attempt < 2 {
-            request = request.header("X-Requested-With", "XMLHttpRequest");
-        }
-        
-        let response = request
             .send()
             .await
             .context("Failed to get SKU information")?;
@@ -376,48 +320,69 @@ impl IsoApi {
         let api_response: MicrosoftApiResponse = serde_json::from_str(&response_text)
             .with_context(|| format!("Failed to parse SKU information response. Response was: {}", response_text))?;
 
+        // Check for errors in ValidationContainer (newer API format)
+        if let Some(validation_container) = &api_response.validation_container {
+            debug!("ValidationContainer errors count: {}", validation_container.errors.len());
+            if !validation_container.errors.is_empty() {
+                return Err(anyhow!("API error: {:?}", validation_container.errors[0]));
+            }
+        }
+        
+        // Check for legacy errors format
         if let Some(errors) = &api_response.errors {
+            debug!("Legacy errors count: {}", errors.len());
             if !errors.is_empty() {
                 return Err(anyhow!("API error: {}", errors[0].value));
             }
         }
+        
+        debug!("No API errors found, SKUs count: {:?}", api_response.skus.as_ref().map(|s| s.len()));
 
         Ok(api_response)
     }
 
     async fn get_download_links(&self, sku_id: &str, session_id: &str) -> Result<MicrosoftApiResponse> {
         let url = format!(
-            "https://www.microsoft.com/software-download-connector/api/GetProductDownloadLinksBySku?profile={}&productEditionId=undefined&SKU={}&friendlyFileName=undefined&Locale=en-US&sessionID={}",
-            self.session_data.profile_id, sku_id, session_id
+            "https://www.microsoft.com/software-download-connector/api/GetProductDownloadLinksBySku?profile={}&productEditionId=undefined&SKU={}&friendlyFileName=undefined&Locale={}&sessionID={}",
+            self.session_data.profile_id, sku_id, self.query_locale, session_id
         );
 
         debug!("Getting download links: {}", url);
 
+        // Must add a referer for this request, else Microsoft's servers may deny it (from Fido comment)
         let referer = "https://www.microsoft.com/software-download/windows11";
         let response = self
             .client
             .get(&url)
             .header("Referer", referer)
-            .header("Accept", "application/json, text/plain, */*")
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .header("Sec-Fetch-Dest", "empty")
-            .header("Sec-Fetch-Mode", "cors")
-            .header("Sec-Fetch-Site", "same-site")
-            .header("X-Requested-With", "XMLHttpRequest")
-            .header("Origin", "https://www.microsoft.com")
             .send()
             .await
             .context("Failed to get download links")?;
 
-        let api_response: MicrosoftApiResponse = response
-            .json()
-            .await
-            .context("Failed to parse download links response")?;
+        let response_text = response.text().await.context("Failed to get download links response text")?;
+        debug!("Download links response (length {}): {}", response_text.len(), response_text);
+        
+        // Save response to file for debugging
+        if let Err(e) = std::fs::write("download_links_response.json", &response_text) {
+            debug!("Failed to write download links response to file: {}", e);
+        }
 
+        let api_response: MicrosoftApiResponse = serde_json::from_str(&response_text)
+            .with_context(|| format!("Failed to parse download links response. Response was: {}", response_text))?;
+
+        // Check for errors in ValidationContainer first (newer API format)
+        if let Some(validation_container) = &api_response.validation_container {
+            if !validation_container.errors.is_empty() {
+                return Err(anyhow!("API error: {:?}", validation_container.errors[0]));
+            }
+        }
+        
+        // Check for legacy errors format (like Fido does)
         if let Some(errors) = &api_response.errors {
             if !errors.is_empty() {
                 if errors[0].error_type == 9 {
-                    return Err(anyhow!("Your IP has been banned by Microsoft (code 715-123130). Session: {}", session_id));
+                    let ban_message = self.get_code_715_123130_message().await;
+                    return Err(anyhow!("{} {}", ban_message, session_id));
                 }
                 return Err(anyhow!("API error: {}", errors[0].value));
             }
@@ -477,15 +442,68 @@ impl IsoApi {
             .collect()
     }
 
-    #[allow(dead_code)]
-    pub async fn check_locale(&self, locale: &str) -> Result<bool> {
+    // Check if the locale we want is available - Fall back to en-US otherwise (like Fido)
+    async fn check_and_set_locale(&mut self) -> Result<()> {
+        let system_locale = utils::get_system_locale();
+        
+        // Try system locale first
+        if self.check_locale(&system_locale).await? {
+            self.query_locale = system_locale;
+            debug!("Using system locale: {}", self.query_locale);
+        } else {
+            self.query_locale = "en-US".to_string();
+            debug!("Falling back to en-US locale");
+        }
+        
+        Ok(())
+    }
+    
+    async fn check_locale(&self, locale: &str) -> Result<bool> {
         let url = format!("https://www.microsoft.com/{}/software-download/", locale);
         
         debug!("Checking locale: {}", url);
         
         match self.client.get(&url).send().await {
             Ok(response) => Ok(response.status().is_success()),
-            Err(_) => Ok(false),
+            Err(_) => {
+                debug!("Locale check failed for: {}", locale);
+                Ok(false)
+            }
         }
+    }
+    
+    // Get the 715-123130 ban message like Fido does
+    async fn get_code_715_123130_message(&self) -> String {
+        let url = format!("https://www.microsoft.com/{}/software-download/windows11", self.query_locale);
+        
+        match self.client.get(&url).send().await {
+            Ok(response) => {
+                if let Ok(html) = response.text().await {
+                    // Try to extract the actual ban message from HTML like Fido does
+                    let pattern = r#"<input id="msg-01" type="hidden" value="(.*?)"/>"#;
+                    if let Ok(re) = regex::Regex::new(pattern) {
+                        if let Some(captures) = re.captures(&html) {
+                            if let Some(msg) = captures.get(1) {
+                                let msg = msg.as_str()
+                                    .replace("&lt;", "<")
+                                    .replace("&gt;", ">")
+                                    .replace("&amp;", "&");
+                                // Remove HTML tags and clean up whitespace
+                                let clean_msg = regex::Regex::new(r"<[^>]+>").unwrap().replace_all(&msg, "");
+                                let clean_msg = regex::Regex::new(r"\s+").unwrap().replace_all(&clean_msg, " ");
+                                if clean_msg.contains("715-123130") {
+                                    return clean_msg.trim().to_string() + " Session ID: ";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+        
+        // Fallback message like Fido
+        let msg = "Your IP address has been banned by Microsoft for issuing too many ISO download requests or for belonging to a region of the world where sanctions currently apply. Please try again later.\nIf you believe this ban to be in error, you can try contacting Microsoft by referring to message code 715-123130 and session ID ";
+        msg.to_string()
     }
 }

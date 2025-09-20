@@ -30,7 +30,7 @@ Unlike Microsoft's Media Creation Tool (MCT), which generates ISOs on-the-fly (m
 
 ### From Source
 ```bash
-git clone <repository-url>
+git clone https://github.com/ajaikumarvs/Ferro.git
 cd ferro
 cargo build --release
 ./target/release/ferro --help

@@ -115,7 +115,7 @@ impl Default for SessionData {
     }
 }
 
-// Static data similar to Fido's $WindowsVersions array
+// Static data exactly matching Fido's $WindowsVersions array
 pub fn get_windows_versions() -> Vec<WindowsVersionData> {
     vec![
         WindowsVersionData {
@@ -130,11 +130,11 @@ pub fn get_windows_versions() -> Vec<WindowsVersionData> {
                             ids: vec![3113, 3131],
                         },
                         WindowsEditionData {
-                            name: "Windows 11 Home China".to_string(),
+                            name: "Windows 11 Home China ".to_string(),
                             ids: vec![3115, 3132],
                         },
                         WindowsEditionData {
-                            name: "Windows 11 Pro China".to_string(),
+                            name: "Windows 11 Pro China ".to_string(),
                             ids: vec![3114, 3133],
                         },
                     ],
@@ -153,7 +153,7 @@ pub fn get_windows_versions() -> Vec<WindowsVersionData> {
                             ids: vec![2618],
                         },
                         WindowsEditionData {
-                            name: "Windows 10 Home China".to_string(),
+                            name: "Windows 10 Home China ".to_string(),
                             ids: vec![2378],
                         },
                     ],
@@ -187,6 +187,125 @@ pub fn get_windows_versions() -> Vec<WindowsVersionData> {
                         WindowsEditionData {
                             name: "Debug".to_string(),
                             ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "24H1 (edk2-stable202405)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "23H2 (edk2-stable202311)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "23H1 (edk2-stable202305)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "22H2 (edk2-stable202211)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "22H1 (edk2-stable202205)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "21H2 (edk2-stable202108)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "21H1 (edk2-stable202105)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+                WindowsReleaseData {
+                    name: "20H2 (edk2-stable202011)".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
+                        },
+                        WindowsEditionData {
+                            name: "Debug".to_string(),
+                            ids: vec![1],
+                        },
+                    ],
+                },
+            ],
+        },
+        WindowsVersionData {
+            name: "UEFI Shell 2.0".to_string(),
+            page_type: "UEFI_SHELL 2.0".to_string(),
+            releases: vec![
+                WindowsReleaseData {
+                    name: "4.632 [20100426]".to_string(),
+                    editions: vec![
+                        WindowsEditionData {
+                            name: "Release".to_string(),
+                            ids: vec![0],
                         },
                     ],
                 },
