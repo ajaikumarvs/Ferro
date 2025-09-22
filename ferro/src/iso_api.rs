@@ -22,13 +22,15 @@ impl IsoApi {
         // Create simple client like PowerShell's Invoke-RestMethod with -UseBasicParsing
         let cookie_store = Arc::new(CookieStoreMutex::default());
 
+        // Use the exact PowerShell User-Agent format that Fido uses
+        // PowerShell 5.1 format: Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.4170
+        let powershell_user_agent = "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.4170";
         let client = Client::builder()
-            .user_agent(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WindowsPowerShell/5.1.19041.4170",
-            )
+            .user_agent(powershell_user_agent)
             .redirect(reqwest::redirect::Policy::none()) // MaximumRedirection 0 like Fido
             .timeout(Duration::from_secs(30)) // DefaultTimeout like Fido
             .cookie_provider(cookie_store.clone())
+            // gzip decompression is enabled by default in reqwest
             .build()?;
 
         let mut api = IsoApi {
@@ -161,9 +163,8 @@ impl IsoApi {
             // Whitelist session ID like Fido does
             self.whitelist_session(&session_id).await?;
 
-            // Add randomized delay between requests to appear more human-like
-            let delay = 500 + (uuid::Uuid::new_v4().as_u128() % 1000) as u64; // 500-1500ms
-            tokio::time::sleep(Duration::from_millis(delay)).await;
+            // Fido doesn't use artificial delays - remove this to match original behavior
+            // Microsoft might detect artificial delays as bot behavior
 
             // Get SKU information using exact Fido approach
             let languages_response = self
@@ -229,9 +230,8 @@ impl IsoApi {
             // Reuse the session ID from the SKU information call (like Fido does with $SessionId[$Entry.SessionIndex])
             // Don't create a new session or whitelist again - reuse existing session
 
-            // Add randomized delay between requests
-            let delay = 500 + (uuid::Uuid::new_v4().as_u128() % 1000) as u64; // 500-1500ms
-            tokio::time::sleep(Duration::from_millis(delay)).await;
+            // Fido doesn't use artificial delays between requests
+            // Remove delays to match original behavior exactly
 
             // Get the stored session ID for this session index
             let session_id = self
@@ -291,13 +291,19 @@ impl IsoApi {
         debug!("Whitelisting session: {}", url);
 
         // Exact replication of Fido: Invoke-WebRequest -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 $url | Out-Null
-        match self.client.get(&url).send().await {
-            Ok(_) => {
-                debug!("Session whitelisting request completed successfully");
+        // Use minimal headers like PowerShell -UseBasicParsing
+        match self.client
+            .get(&url)
+            .send()
+            .await {
+            Ok(response) => {
+                debug!("Session whitelisting request completed successfully with status: {}", response.status());
                 Ok(())
             }
             Err(e) => {
                 // Like Fido: catch { Error($_.Exception.Message); return @() }
+                // Let's add more debugging information to understand what's failing
+                debug!("Session whitelisting failed with error: {}", e);
                 Err(anyhow!("Session whitelisting failed: {}", e))
             }
         }
@@ -354,6 +360,7 @@ impl IsoApi {
         debug!("Getting SKU information (attempt {}): {}", attempt + 1, url);
 
         // Use minimal headers like Fido's -UseBasicParsing
+        // Let reqwest handle compression automatically
         let response = self
             .client
             .get(&url)

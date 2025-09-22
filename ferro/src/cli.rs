@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "ferro")]
 #[command(about = "A cross-platform Windows ISO downloader - Rust rewrite of Fido")]
-#[command(version = "0.1.0")]
+#[command(version = "1.0.0")]
 #[command(author = "Ferro Contributors")]
 pub struct Cli {
     #[command(subcommand)]
