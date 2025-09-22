@@ -130,11 +130,25 @@ async fn handle_download_command(
         l
     } else {
         let languages = api.get_languages(&version, &release, &edition).await?;
-        // Try to find system locale or default to English
+        // Try to find the best default language in order:
+        // 1. System locale exact match
+        // 2. English International
+        // 3. English (United States) 
+        // 4. Any language starting with "en"
+        // 5. First available language
         let system_locale = utils::get_system_locale();
         languages
             .iter()
             .find(|lang| lang.name.starts_with(&system_locale))
+            .or_else(|| languages.iter().find(|lang| 
+                lang.display_name.eq_ignore_ascii_case("English International") ||
+                lang.name.eq_ignore_ascii_case("en-gb")
+            ))
+            .or_else(|| languages.iter().find(|lang| 
+                lang.display_name.eq_ignore_ascii_case("English (United States)") ||
+                lang.display_name.eq_ignore_ascii_case("English") ||
+                lang.name.eq_ignore_ascii_case("en-us")
+            ))
             .or_else(|| languages.iter().find(|lang| lang.name.starts_with("en")))
             .or_else(|| languages.first())
             .context("No languages found")?
@@ -149,9 +163,14 @@ async fn handle_download_command(
             .get_architectures(&version, &release, &edition, &language)
             .await?;
         let system_arch = utils::get_system_architecture();
+        // Try to find the best architecture in order:
+        // 1. System architecture exact match
+        // 2. x64 (most common)
+        // 3. First available architecture
         archs
             .iter()
             .find(|arch| arch.name == system_arch)
+            .or_else(|| archs.iter().find(|arch| arch.name.eq_ignore_ascii_case("x64")))
             .or_else(|| archs.first())
             .context("No architectures found")?
             .name
