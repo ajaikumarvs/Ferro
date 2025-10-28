@@ -8,7 +8,6 @@
 
 Ferro is a **complete, production-ready** cross-platform Windows ISO downloader written in Rust - a full 1:1 rewrite of the popular [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. Ferro provides a modern CLI interface for downloading official Microsoft Windows retail ISOs and UEFI Shell images without requiring PowerShell or Windows.
 
-**✅ FULLY IMPLEMENTED**: Ferro is now feature-complete with exact API replication of Fido's behavior.
 
 This tool exists because, while Microsoft does make retail ISO download links freely and publicly available (at least for Windows 8 through Windows 11), these links were historically only available after forcing users to jump through many unwarranted hoops that created an exceedingly counterproductive consumer experience.
 
@@ -18,17 +17,16 @@ Using official retail ISOs is currently the only way to assert with absolute cer
 
 Unlike Microsoft's Media Creation Tool (MCT), which generates ISOs on-the-fly (making each one unique), retail ISOs provide verifiable, bit-for-bit identical content that matches Microsoft's original release.
 
-## ✅ Key Features
+##  Key Features
 
-- **✅ Cross-Platform**: Works on Windows, macOS, and Linux without PowerShell dependency
-- **✅ Official ISOs**: Downloads genuine Microsoft Windows retail ISOs with verifiable checksums  
-- **✅ Multiple Versions**: Supports Windows 11, Windows 10, and UEFI Shell images
-- **✅ Modern CLI**: Clean command-line interface with helpful error messages
-- **✅ Smart Defaults**: Automatically selects appropriate language and architecture based on system
-- **✅ Progress Tracking**: Real-time download progress with speed and ETA information
-- **✅ URL-Only Mode**: Option to retrieve download URLs without downloading
-- **✅ Session Management**: Proper Microsoft API integration with anti-ban measures
-- **✅ 1:1 Fido Accuracy**: Exact replication of Fido's behavior and API calls
+- ** Cross-Platform**: Works on Windows, macOS, and Linux without PowerShell dependency
+- ** Official ISOs**: Downloads genuine Microsoft Windows retail ISOs with verifiable checksums  
+- ** Multiple Versions**: Supports Windows 11, Windows 10, and UEFI Shell images
+- ** Modern CLI**: Clean command-line interface with helpful error messages
+- ** Smart Defaults**: Automatically selects appropriate language and architecture based on system
+- ** Progress Tracking**: Real-time download progress with speed and ETA information
+- ** URL-Only Mode**: Option to retrieve download URLs without downloading
+- ** Session Management**: Proper Microsoft API integration with anti-ban measures
 
 ## Installation
 
@@ -182,29 +180,6 @@ Ferro replicates the functionality of the original Fido PowerShell script by:
 | Distribution | Script file | Single executable |
 | GUI Mode | Yes | CLI only (for now) |
 
-## ✅ Implementation Status
-
-**FULLY COMPLETED**: Ferro now provides complete 1:1 functionality with the original Fido script.
-
-### Completed Features:
-- ✅ **CLI Interface**: Full command-line interface with argument parsing
-- ✅ **Microsoft API Integration**: Complete replication of Fido's API calls
-- ✅ **Session Management**: Proper session whitelisting and ID management  
-- ✅ **Anti-Ban Measures**: Randomized delays, proper headers, and request patterns
-- ✅ **Download Functionality**: Full HTTP downloads with progress tracking
-- ✅ **Error Handling**: Complete 715-123130 ban detection and reporting
-- ✅ **Cross-Platform Support**: Works on Windows, macOS, and Linux
-- ✅ **UEFI Shell Support**: Direct downloads from GitHub releases
-- ✅ **Locale Detection**: Automatic system locale and architecture detection
-
-### Successfully Tested:
-- ✅ **API Communication**: 38+ languages retrieved from Microsoft's servers
-- ✅ **Architecture Detection**: x64 and ARM64 options correctly identified  
-- ✅ **Download Process**: UEFI Shell ISO successfully downloaded (15MB)
-- ✅ **Error Handling**: IP ban detection with proper session ID reporting
-- ✅ **Progress Tracking**: Real-time download progress and speed indicators
-
-**Note:** As of 2023.05, Microsoft has removed access to older releases of Windows ISOs, and the list of releases that can be downloaded has been reduced to only the latest for each version.
 
 ## Supported Downloads
 
@@ -257,9 +232,3 @@ RUST_LOG=debug ferro download --version "Windows 11"
 Ferro is inspired by and based on the excellent [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. This Rust implementation aims to provide the same functionality in a cross-platform, dependency-free package.
 
 The original Fido documentation and README can be found in the `/README/` directory of this repository for reference.
-
-## Additional Notes
-
-Because of its intended usage similar to Fido, this tool is not designed to cover every possible retail ISO download. Instead, we focus on the downloads that the general public is likely to request. We currently have no plans to add support for LTSB/LTSC Windows ISO downloads.
-
-If you are interested in such downloads, please visit the relevant download pages from Microsoft such as [this one](https://www.microsoft.com/evalcenter/evaluate-windows-10-enterprise) for LTSC versions.
