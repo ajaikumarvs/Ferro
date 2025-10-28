@@ -19,14 +19,14 @@ Unlike Microsoft's Media Creation Tool (MCT), which generates ISOs on-the-fly (m
 
 ##  Key Features
 
-- ** Cross-Platform**: Works on Windows, macOS, and Linux without PowerShell dependency
-- ** Official ISOs**: Downloads genuine Microsoft Windows retail ISOs with verifiable checksums  
-- ** Multiple Versions**: Supports Windows 11, Windows 10, and UEFI Shell images
-- ** Modern CLI**: Clean command-line interface with helpful error messages
-- ** Smart Defaults**: Automatically selects appropriate language and architecture based on system
-- ** Progress Tracking**: Real-time download progress with speed and ETA information
-- ** URL-Only Mode**: Option to retrieve download URLs without downloading
-- ** Session Management**: Proper Microsoft API integration with anti-ban measures
+- **Cross-Platform**: Works on Windows, macOS, and Linux without PowerShell dependency
+- **Official ISOs**: Downloads genuine Microsoft Windows retail ISOs with verifiable checksums  
+- **Multiple Versions**: Supports Windows 11, Windows 10, and UEFI Shell images
+- **Modern CLI**: Clean command-line interface with helpful error messages
+- **Smart Defaults**: Automatically selects appropriate language and architecture based on system
+- **Progress Tracking**: Real-time download progress with speed and ETA information
+- **URL-Only Mode**: Option to retrieve download URLs without downloading
+- **Session Management**: Proper Microsoft API integration with anti-ban measures
 
 ## Installation
 
