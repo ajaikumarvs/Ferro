@@ -4,9 +4,27 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Cross Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/ajaikumarvs/Ferro)
 
+# ⚠️ **FERRO IS IN ACTIVE TESTING PHASE** ⚠️
+
+> **Multiple or rapid download requests WILL trigger a temporary IP ban**  
+> (typically **24 hours**, sometimes longer) from Microsoft's servers.
+
+You will see error: `715-123130`
+
+**Do NOT run automated scripts, loops, or concurrent downloads.**  
+One request at a time · Wait at least **2–3 minutes** between sessions.
+
+**By using Ferro, you acknowledge and accept full responsibility for any temporary or permanent IP bans** 
+triggered by Microsoft's download servers (error 715-123130). 
+
+**No warranties are provided. Use at your own risk.**
+
+
+...
+
 ## Description
 
-Ferro is a **complete, production-ready** cross-platform Windows ISO downloader written in Rust - a full 1:1 rewrite of the popular [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. Ferro provides a modern CLI interface for downloading official Microsoft Windows retail ISOs and UEFI Shell images without requiring PowerShell or Windows.
+Ferro is a cross-platform Windows ISO downloader written in Rust - a full 1:1 rewrite of the popular [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. Ferro provides a modern CLI interface for downloading official Microsoft Windows retail ISOs and UEFI Shell images without requiring PowerShell or Windows.
 
 
 This tool exists because, while Microsoft does make retail ISO download links freely and publicly available (at least for Windows 8 through Windows 11), these links were historically only available after forcing users to jump through many unwarranted hoops that created an exceedingly counterproductive consumer experience.
