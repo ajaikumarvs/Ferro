@@ -20,8 +20,6 @@ triggered by Microsoft's download servers (error 715-123130).
 **No warranties are provided. Use at your own risk.**
 
 
-...
-
 ## Description
 
 Ferro is a cross-platform Windows ISO downloader written in Rust - a full 1:1 rewrite of the popular [Fido PowerShell script](https://github.com/pbatard/Fido) by Pete Batard. Ferro provides a modern CLI interface for downloading official Microsoft Windows retail ISOs and UEFI Shell images without requiring PowerShell or Windows.
